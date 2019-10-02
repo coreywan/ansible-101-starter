@@ -1,5 +1,6 @@
 Vagrant.configure("2") do |config|
-  config.vm.provision "shell", inline: "sudo yum install -y python python-pip"
+  config.vm.provision "shell", inline: "sudo yum install -y python python-pip libselinux-python"
+
   config.vm.box = "fedora/28-cloud-base"
   config.vm.provider "virtualbox" do |v|
     v.memory = 1024
