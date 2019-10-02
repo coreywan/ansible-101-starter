@@ -112,12 +112,71 @@ ansible all -m shell -i inventory -a 'cat /etc/fstab | grep -v ^#'
                   dest: /var/www/html/index.html
         ```
 
+* As you can see, this is very easy to do. However, this type of task is something that people have been doing across all enterprises for years. Is there a platform to help get this done quicker?! yes, infact there is.  There is a concept called Ansible Roles. Roles are a combination of tasks roled into a nice package. You can also publicly make these accessible through the Ansible Galaxy Platform.  Let's go check it out for our DB servers.  https://galaxy.ansible.com/geerlingguy/mysql
+
+  ```
+  ansible-galaxy install robertdebock.mysql
+  ```
+
+  ```yaml
+  - hosts: db
+    become: true
+    vars:
+      mysql_bind_address: 0.0.0.0
+      mysql_databases:
+        - name: mydb
+          encoding: utf8
+          collation: utf8_bin
+      mysql_users:
+        - name: myuser
+          password: password
+          priv: "*.*:ALL"
+          host: 192.168.10.1
+    pre_tasks:
+      - name: install python requirements
+        package:
+          name:
+            - libselinux-python
+            - MySQL-python 
+    roles:
+      - robertdebock.mysql
+  ```
 
 ## Tips and Tricks
 
+* verbosity - add -vv.. to add verbosity. the more `v` you add the more verbose it gets
+* Check Mode - The ability to execute your playbook and safely check to see if any changes may happen, but not actually execute on the change.
+* limit - You can limit the playbook run to a group or individual hosts. This is useful when you are just wanting to test a section of your playbook.
+* start-at-task - you can skip to a specific task to start from.
+
 * `ansible.cfg` can be used to set a number of defaults. go check the docs for all, but here are a couple useful ones
-  * inventory:
-  ```
-  [defaults]
-  inventory = ./inventory
-  ```
+  * Get rid of the need to type in the inventory path every time
+    ```
+    [defaults]
+    inventory = ./inventory
+    ```
+  * Don't like the output? Think YAML response is easier to read in the stdout?
+    ```
+    # Use the YAML callback plugin.
+    stdout_callback = yaml
+    # Use the stdout_callback when running ad-hoc commands.
+    bin_ansible_callbacks = True
+    ```
+* ansible vault - Do you have secrets you want to keep, and want a secure way to save those in your inventory/code. Ansible Vault is your friend.  You will need to think of a good master password. That master password is used to decrypt / encrypt the password using aes256.
+  * There are two ways to use ansible-vault. You can encrypt a whole file, or just an individual variable. There are pro's and cons to each. When you encrypt a single variable, you can see what changed in git messages. When, you encrypt a whole variable file, you can't tell what changed in git because the whole file has been encrypted. So it makes troubleshooting harder down the line.  With that said, encrypting files comes with an easy button when you need to rotate the master password. 
+    ```sh
+    ansible-101-starter wanlessc$ ansible-vault encrypt_string
+    New Vault password: 
+    Confirm New Vault password: 
+    Reading plaintext input from stdin. (ctrl-d to end input)
+    supersecret!vault |
+            $ANSIBLE_VAULT;1.1;AES256
+            66666637636662396639366537643334626330373136666564643736313461663163336335376337
+            3133396437356534393637333537393531353162303930360a636638356637653663323433663637
+            34663563363636633366323130366639653134376365666263346661626138656635346363393536
+            3362626335376265650a386138393439393432356364343630383439363032353531393161363265
+            3136
+    Encryption successful
+    ```
+
+
